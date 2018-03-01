@@ -1,0 +1,8 @@
+---
+- name: Install packages
+  become: true
+  import_role:
+    name: onegreyonewhite.package_installer
+    allow_duplicates: true
+  vars:
+    system_packages: "{{ redhat_packages }}"

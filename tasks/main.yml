@@ -1,0 +1,115 @@
+---
+- name: Install default packages
+  become: true
+  vars_files:
+    - vars/main.yml
+  import_role:
+      name: onegreyonewhite.package_installer
+  tags: prepare
+
+- name: Install ntp
+  become: true
+  import_role:
+    name: geerlingguy.ntp
+
+- name: check mysql version
+  register: mysql_old_version
+  shell: mysql --version
+  ignore_errors: yes
+  changed_when: False
+
+- name: check apache version
+  register: apache_old_version
+  shell: "/usr/sbin/{{ apache_daemon }} -v"
+  ignore_errors: yes
+  changed_when: False
+
+- name: Deploy LAMP
+  include_tasks: "{{ ansible_os_family }}.yml"
+
+- name: check mysql version
+  register: mysql_new_version
+  shell: mysql --version
+  changed_when: False
+
+- name: check apache version
+  register: apache_new_version
+  shell: "/usr/sbin/{{ apache_daemon }} -v"
+  changed_when: False
+
+- name: Restart mysql
+  command: /bin/true
+  notify: restart mysql
+  when: mysql_new_version.stdout_lines != mysql_old_version.stdout_lines
+
+- name: Restart apache
+  command: /bin/true
+  notify: restart apache
+  when: apache_new_version.stdout_lines != apache_old_version.stdout_lines
+
+- meta: flush_handlers
+
+- name: Remove the Apache test page.
+  become: yes
+  file:
+    path: /var/www/html/index.html
+    state: absent
+
+- name: Copy our fancy server-specific home page.
+  become: yes
+  template:
+    src: templates/index.php.j2
+    dest: /var/www/html/stats.php
+    mode: 0666
+
+- name: Create mysql database
+  become: yes
+  mysql_db: name={{ wp_mysql_db }} state=present
+
+- name: Create mysql user
+  become: yes
+  mysql_user:
+    name={{ wp_mysql_user }}
+    password={{ wp_mysql_password }}
+    priv=*.*:ALL
+
+- name: Extract WordPress
+  become: yes
+  unarchive:
+    src: https://wordpress.org/latest.tar.gz
+    validate_certs: no
+    dest: /var/www/
+    remote_src: yes
+    creates: /var/www/wordpress/wp-config-sample.php
+  register: download_src
+
+- name: Copy wordpress src
+  become: yes
+  shell: cp -rf /var/www/wordpress/* /var/www/html/
+  creates: /var/www/html/wp-config-sample.php
+  when: download_src.changed
+  register: copy_src
+
+- name: Copy sample config file
+  become: yes
+  shell: mv /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
+  creates: /var/www/html/wp-config.php
+  when: copy_src.changed
+  register: config_sample
+
+- name: Update WordPress config file
+  become: yes
+  lineinfile:
+    dest=/var/www/html/wp-config.php
+    regexp="{{ item.regexp }}"
+    line="{{ item.line }}"
+  with_items:
+    - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{wp_mysql_db}}');"}
+    - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{wp_mysql_user}}');"}
+    - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{wp_mysql_password}}');"}
+  when: config_sample.changed
+
+- name: Updates users permissions
+  become: yes
+  shell: "chown -R {{apache_user}}:{{apache_user}} /var/www/html"
+  when: copy_src.changed

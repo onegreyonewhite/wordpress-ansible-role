@@ -1,0 +1,10 @@
+ntp_timezone: "Asia/Vladivostok"
+system_packages:
+  - wget
+  - traceroute
+
+extra_redhat_packages: []
+extra_ubuntu_packages: []
+wp_mysql_db: wordpress
+wp_mysql_user: "{{ wp_mysql_db }}"
+wp_mysql_password: "{{ wp_mysql_user }}"

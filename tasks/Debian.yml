@@ -1,0 +1,33 @@
+---
+- name: Check mysql installation
+  become: true
+  stat:
+    path: /root/mysql_pass
+  register: mysql_stat_exists
+
+- name: Prepare mysql installation
+  become: true
+  shell: echo "mysql-server-5.7 mysql-server/root_password password root" | sudo debconf-set-selections
+  when: mysql_stat_exists.stat.islnk is not defined
+
+- name: Prepare mysql installation
+  become: true
+  shell: echo "mysql-server-5.7 mysql-server/root_password_again password root" | tee /root/mysql_pass | sudo debconf-set-selections
+  when: mysql_stat_exists.stat.islnk is not defined
+
+- name: Generate mysql user conf
+  become: true
+  template:
+    src: templates/my.cnf.j2
+    dest: /root/.my.cnf
+    mode: 0660
+
+- name: Install packages
+  become: true
+  import_role:
+    name: onegreyonewhite.package_installer
+    allow_duplicates: true
+  vars:
+    system_packages: "{{ ubuntu_packages }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive

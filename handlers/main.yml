@@ -1,0 +1,13 @@
+---
+- name: restart apache
+  become: true
+  service:
+    name: "{{ apache_daemon }}"
+    state: restarted
+
+- name: restart mysql
+  become: true
+  service:
+    name: "{{ mysql_daemon }}"
+    state: restarted
+    enabled: yes

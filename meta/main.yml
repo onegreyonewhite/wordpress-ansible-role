@@ -1,0 +1,29 @@
+---
+dependencies:
+  - role: onegreyonewhite.package_installer
+    when: never autostart
+
+galaxy_info:
+  author: onegreyonewhite
+  description: WordPress deployment for Debian/Ubuntu/Centos.
+  company: "onegreyonewhite"
+  license: "license (BSD)"
+  min_ansible_version: 2.3
+  platforms:
+    - name: Ubuntu
+      versions:
+        - trusty
+        - xenial
+    - name: Debian
+      versions:
+        - jessie
+        - stretch
+    - name: EL
+      versions:
+        - 5
+        - 6
+        - 7
+  categories:
+    - web
+    - linux
+    - lamp

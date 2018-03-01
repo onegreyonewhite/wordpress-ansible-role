@@ -1,0 +1,24 @@
+php_packages:
+  - php
+  - php-mysql
+  - php-fpm
+  - php-gd
+  - php-cli
+
+default_redhat_packages:
+  - MySQL-python
+  - httpd
+  - mariadb-server
+  - mariadb
+
+default_ubuntu_packages:
+  - python-mysqldb
+  - apache2
+  - mysql-server
+  - libapache2-mod-php
+
+redhat_packages: "{{ default_redhat_packages }} + {{ extra_redhat_packages }} + {{ php_packages }}"
+ubuntu_packages: "{{ default_ubuntu_packages }} + {{ extra_ubuntu_packages }} + {{ php_packages }}"
+apache_daemon: "{% if ansible_os_family == 'RedHat' %}httpd{% else %}apache2{% endif %}"
+mysql_daemon: "{% if ansible_os_family == 'RedHat' %}mariadb{% else %}mysql{% endif %}"
+apache_user: "{% if ansible_os_family == 'RedHat' %}apache{% else %}www-data{% endif %}"
