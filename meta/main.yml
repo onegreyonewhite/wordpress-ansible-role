@@ -1,9 +1,9 @@
 ---
 dependencies:
   - role: onegreyonewhite.package_installer
-    when: never autostart
+    when: never_autostart
   - role: geerlingguy.ntp
-    when: never autostart
+    when: never_autostart
 
 galaxy_info:
   author: onegreyonewhite
