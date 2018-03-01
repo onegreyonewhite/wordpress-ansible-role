@@ -5,55 +5,79 @@
     - vars/main.yml
   import_role:
       name: onegreyonewhite.package_installer
-  tags: prepare
+  tags:
+    - prepare
+    - lamp
 
 - name: Install ntp
   become: true
   import_role:
     name: geerlingguy.ntp
+  tags:
+    - prepare
+    - lamp
 
 - name: check mysql version
   register: mysql_old_version
   shell: mysql --version
   ignore_errors: yes
   changed_when: False
+  tags:
+    - lamp
 
 - name: check apache version
   register: apache_old_version
   shell: "/usr/sbin/{{ apache_daemon }} -v"
   ignore_errors: yes
   changed_when: False
+  tags:
+    - lamp
 
 - name: Deploy LAMP
   include_tasks: "{{ ansible_os_family }}.yml"
+  tags:
+    - lamp
 
 - name: check mysql version
   register: mysql_new_version
   shell: mysql --version
   changed_when: False
+  tags:
+    - lamp
 
 - name: check apache version
   register: apache_new_version
   shell: "/usr/sbin/{{ apache_daemon }} -v"
   changed_when: False
+  tags:
+    - lamp
 
 - name: Restart mysql
   command: /bin/true
   notify: restart mysql
   when: mysql_new_version.stdout_lines != mysql_old_version.stdout_lines
+  tags:
+    - lamp
 
 - name: Restart apache
   command: /bin/true
   notify: restart apache
   when: apache_new_version.stdout_lines != apache_old_version.stdout_lines
+  tags:
+    - lamp
 
 - meta: flush_handlers
+  tags:
+    - prepare
+    - lamp
 
 - name: Remove the Apache test page.
   become: yes
   file:
     path: /var/www/html/index.html
     state: absent
+  tags:
+    - lamp
 
 - name: Copy our fancy server-specific home page.
   become: yes
@@ -61,10 +85,14 @@
     src: templates/index.php.j2
     dest: /var/www/html/stats.php
     mode: 0666
+  tags:
+    - lamp
 
 - name: Create mysql database
   become: yes
   mysql_db: name={{ wp_mysql_db }} state=present
+  tags:
+    - wordpress
 
 - name: Create mysql user
   become: yes
@@ -72,6 +100,8 @@
     name={{ wp_mysql_user }}
     password={{ wp_mysql_password }}
     priv=*.*:ALL
+  tags:
+    - wordpress
 
 - name: Extract WordPress
   become: yes
@@ -82,6 +112,8 @@
     remote_src: yes
     creates: /var/www/wordpress/wp-config-sample.php
   register: download_src
+  tags:
+    - wordpress
 
 - name: Copy wordpress src
   become: yes
@@ -89,6 +121,8 @@
   creates: /var/www/html/wp-config-sample.php
   when: download_src.changed
   register: copy_src
+  tags:
+    - wordpress
 
 - name: Copy sample config file
   become: yes
@@ -96,6 +130,8 @@
   creates: /var/www/html/wp-config.php
   when: copy_src.changed
   register: config_sample
+  tags:
+    - wordpress
 
 - name: Update WordPress config file
   become: yes
@@ -108,8 +144,13 @@
     - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{wp_mysql_user}}');"}
     - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{wp_mysql_password}}');"}
   when: config_sample.changed
+  tags:
+    - wordpress
 
 - name: Updates users permissions
   become: yes
   shell: "chown -R {{apache_user}}:{{apache_user}} /var/www/html"
   when: copy_src.changed
+  tags:
+    - lamp
+    - wordpress

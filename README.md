@@ -37,14 +37,6 @@ extra_ubuntu_packages: []
 This vars setup extra packages needed for lamp server.
 It could be php extra packages or additional apache modules.
 
-## Dependencies
-
-Install dependencies using Ansible galaxy
-
-`ansible-galaxy install -r roles/requirements.yml`
-
-You shouldn't do this if you install role from galaxy.
-
 Example Playbook
 ----------------
 
