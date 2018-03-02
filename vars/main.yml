@@ -1,3 +1,4 @@
+never_autostart: no
 php_packages:
   - php
   - php-mysql
